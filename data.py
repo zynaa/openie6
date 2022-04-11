@@ -100,18 +100,19 @@ def _process_data(inp_fp, hparams, fields, tokenizer, label_dict, spacy_model=No
                 targets = []
                 sentence = None
             # starting new example
-            if line is not '':
+            if line != '':
                 new_example = False
                 sentence = line
 
-                tokenized_words = tokenizer.batch_encode_plus(sentence.split())
-                input_ids, word_starts, lang = [hparams.bos_token_id], [], []
-                for tokens in tokenized_words['input_ids']:
-                    if len(tokens) == 0: # special tokens like \x9c
-                        tokens = [100]
-                    word_starts.append(len(input_ids))
-                    input_ids.extend(tokens)
-                input_ids.append(hparams.eos_token_id)
+                tokenized_words = tokenizer(sentence.split(), is_split_into_words=True)
+                input_ids = tokenized_words["input_ids"]
+                word_starts = []
+                last_word_id = None
+                for word_id in tokenized_words.word_ids():
+                    if word_id is not None and word_id != last_word_id:
+                        word_starts.append(word_id + 1)
+                        last_word_id = word_id
+
                 assert len(sentence.split()) == len(word_starts), ipdb.set_trace()
         else:
             if sentence is not None:

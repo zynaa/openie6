@@ -70,7 +70,7 @@ threadpoolctl==2.1.0
 torchtext==0.5.0
 tqdm==4.47.0
 traitlets==4.3.3
-transformers==2.6.0
+transformers==4.18.0
 tokenizers==0.5.2
 urllib3==1.25.9
 wasabi==0.7.0

@@ -116,7 +116,8 @@ class Model(pl.LightningModule):
             depth = self._max_depth
 
         loss, lstm_loss = 0, 0
-        hidden_states, _ = self._base_model(batch.text)
+        output = self._base_model(batch.text)
+        hidden_states = output.last_hidden_state
         output_dict = dict()
         # (batch_size, seq_length, max_depth, num_labels)
         all_depth_scores = []
@@ -130,7 +131,7 @@ class Model(pl.LightningModule):
             word_hidden_states = torch.gather(hidden_states, 1, batch.word_starts.unsqueeze(2).repeat(1, 1, hidden_states.shape[2]))
 
             if d != 0:
-                greedy_labels = torch.argmax(word_scores, dim=-1)      
+                greedy_labels = torch.argmax(word_scores, dim=-1)
                 label_embeddings = self._label_embeddings(greedy_labels)
                 word_hidden_states = word_hidden_states + label_embeddings
 
