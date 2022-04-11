@@ -69,6 +69,7 @@ def verb_tags(spacy_sentence):
 
 def _process_data(inp_fp, hparams, fields, tokenizer, label_dict, spacy_model=None):
     model_str = hparams.model_str
+    max_len = tokenizer.max_model_input_sizes[model_str]
     examples, exampleDs, targets, lang_targets, orig_sentences = [], [], [], [], []
 
     sentence = None
@@ -79,6 +80,7 @@ def _process_data(inp_fp, hparams, fields, tokenizer, label_dict, spacy_model=No
     else:
         inp_lines = open(inp_fp, 'r').readlines()
 
+    skipped_examples = 0
     new_example = True
     for line_num, line in tqdm(enumerate(inp_lines)):
         line = line.strip()
@@ -94,18 +96,21 @@ def _process_data(inp_fp, hparams, fields, tokenizer, label_dict, spacy_model=No
                 orig_sentences.append(orig_sentence)
 
                 exampleD = {'text': input_ids, 'labels': targets[:max_extraction_length], 'word_starts': word_starts, 'meta_data': orig_sentence}
-                if len(sentence.split()) <= 100:
-                    exampleDs.append(exampleD)
+                exampleDs.append(exampleD)
 
                 targets = []
                 sentence = None
             # starting new example
             if line != '':
                 new_example = False
-                sentence = line
 
-                tokenized_words = tokenizer(sentence.split(), is_split_into_words=True)
+                tokenized_words = tokenizer(line)
                 input_ids = tokenized_words["input_ids"]
+                if len(input_ids) > max_len:
+                    skipped_examples += 1
+                    continue
+
+                sentence = line
                 word_starts = []
                 last_word_id = None
                 for word_id in tokenized_words.word_ids():
@@ -141,6 +146,10 @@ def _process_data(inp_fp, hparams, fields, tokenizer, label_dict, spacy_model=No
     for exampleD in exampleDs:
         example = data.Example.fromdict(exampleD, fields)
         examples.append(example)
+
+    print(f"Warning: Input sequences longer than {max_len} tokens are unsupported. "
+          f"Skipped {skipped_examples} sequences with too many tokens.")
+
     return examples, orig_sentences
 
 def process_data(hparams, predict_sentences=None):
@@ -150,7 +159,6 @@ def process_data(hparams, predict_sentences=None):
     do_lower_case = 'uncased' in hparams.model_str
     tokenizer = AutoTokenizer.from_pretrained(hparams.model_str, do_lower_case=do_lower_case, use_fast=True, data_dir='data/pretrained_cache',
                                               add_special_tokens=False, additional_special_tokens=['[unused1]', '[unused2]', '[unused3]'])
-
     nlp = spacy.load("en_core_web_sm")
     pad_index = tokenizer.convert_tokens_to_ids(tokenizer.pad_token)
 
