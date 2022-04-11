@@ -104,7 +104,7 @@ def _process_data(inp_fp, hparams, fields, tokenizer, label_dict, spacy_model=No
             if line != '':
                 new_example = False
 
-                tokenized_words = tokenizer(line)
+                tokenized_words = tokenizer(line.split(), is_split_into_words=True)
                 input_ids = tokenized_words["input_ids"]
                 if len(input_ids) > max_len:
                     skipped_examples += 1
