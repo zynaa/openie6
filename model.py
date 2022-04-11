@@ -259,10 +259,9 @@ class Model(pl.LightningModule):
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
-        if type(self.trainer.checkpoint_callback.kth_value) != type(0.0):
-            best = self.trainer.checkpoint_callback.kth_value.item()
-        else:
-            best = self.trainer.checkpoint_callback.kth_value
+        best = self.trainer.checkpoint_callback.kth_value
+        if not isinstance(best, float) and not isinstance(best, int):
+            best = best.item()
         tqdm = {'loss': '{:.3f}'.format(avg_training_loss), 'best': best}
         return tqdm
 
